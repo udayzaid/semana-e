@@ -1,5 +1,5 @@
 /** Formatea importes en bolivianos para la interfaz. */
-export function formatB bolivianos(value: number): string {
+export function formatBolivianos(value: number): string {
   return new Intl.NumberFormat('es-BO', {
     style: 'currency',
     currency: 'BOB',
