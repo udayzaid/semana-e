@@ -1,32 +1,46 @@
-# React + TypeScript + Vite
+# VIDALID — Sistema de gestión
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+MVP web para la gestión de inventario, ventas, clientes, pedidos y distribución de VIDALID.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + TypeScript + Vite
+- Tailwind CSS 4
+- Supabase (PostgreSQL, Auth y RLS)
+- React Router, TanStack Query y Zustand
+- React Hook Form + Zod
+- Recharts, Lucide React y Sonner
 
-## React Compiler
+## Requisitos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 22 o superior
+- npm
 
-## Expanding the Oxlint configuration
+## Desarrollo local
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `tsrs` and editing `.oxlintrc.json`:
+1. Instalar dependencias: `npm install`
+2. Copiar `.env.example` a `.env` y completar:
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+   ```env
+   VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+   VITE_SUPABASE_ANON_KEY=<sb_publishable_...>
+   ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+3. Iniciar: `npm run dev`
+
+## Seguridad
+
+Las variables `VITE_` se incorporan al bundle del navegador. Solo deben contener datos publicables, como Project URL y publishable key de Supabase. Nunca colocar aquí claves secretas, contraseña de PostgreSQL, `service_role` ni claves de OpenAI. Proteger los datos con RLS y ejecutar operaciones privilegiadas en funciones de servidor.
+
+## Estructura
+
+- `src/app`: rutas y providers.
+- `src/components`: componentes compartidos.
+- `src/features`: módulos de negocio.
+- `src/services`: conexiones externas.
+- `src/types`: tipos compartidos.
+- `src/hooks`, `src/stores`, `src/lib`: utilidades transversales.
+- `supabase/migrations`: migraciones SQL.
+- `supabase/functions`: funciones de servidor.
+
+Trabajar mediante ramas de funcionalidad y Pull Requests. No subir archivos `.env`.
