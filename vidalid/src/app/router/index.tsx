@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { ComingSoon } from '@/components/shared/ComingSoon'
 import { LoginPage, RequireAuth } from '@/features/auth'
+import { CustomersPage } from '@/features/customers'
 import { DashboardPage } from '@/features/dashboard'
 import { InventoryPage } from '@/features/inventory'
 import { ProductsPage } from '@/features/products'
@@ -22,7 +23,7 @@ export const router = createBrowserRouter([
           { path: 'productos', element: <ProductsPage /> },
           { path: 'ventas', element: <ComingSoon title="Ventas" /> },
           { path: 'pedidos', element: <ComingSoon title="Pedidos" /> },
-          { path: 'clientes', element: <ComingSoon title="Clientes / CRM" /> },
+          { path: 'clientes', element: <CustomersPage /> },
           { path: 'distribucion', element: <ComingSoon title="Distribución" /> },
           { path: 'reportes', element: <ComingSoon title="Reportes" /> },
           { path: 'asistente', element: <ComingSoon title="VIDALID AI" /> },
