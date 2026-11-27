@@ -1,24 +1,28 @@
-import { Leaf, Loader2, LogOut } from 'lucide-react'
+import { Loader2, LogOut } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 import { useSignOut } from '@/features/auth/hooks/useSignOut'
 import { useAuthStore } from '@/stores/auth.store'
-import { adminNavigation } from './navigation'
 import { getInitials } from './initials'
+import { adminNavigation } from './navigation'
 
-export function Sidebar() {
+/** Contenido del menú: se usa en la barra lateral (escritorio/tablet) y en el menú móvil. */
+export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const profile = useAuthStore((state) => state.profile)
   const { signOut, isSigningOut } = useSignOut()
   const name = profile?.fullName || 'Administrador'
 
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark"><Leaf size={21} /></div>
-        <div><strong>VIDALID</strong><span>GESTIÓN INTELIGENTE</span></div>
+    <>
+      <div className="px-2 pb-6">
+        <BrandLogo className="h-10" />
+        <p className="mt-1 pl-1 text-[9px] font-bold tracking-[0.22em] text-muted-foreground">PRODUCTOS NATURALES</p>
       </div>
 
       <div className="workspace">
-        <div className="workspace-avatar">V</div>
+        <div className="workspace-avatar">
+          <BrandLogo kind="isotipo" className="size-5" />
+        </div>
         <div><strong>VIDALID Central</strong><span>Almacén principal</span></div>
       </div>
 
@@ -32,6 +36,7 @@ export function Sidebar() {
                 to={to}
                 end={end}
                 title={label}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   ['nav-item', highlight === 'ai' ? 'ai-link' : '', isActive ? 'active' : ''].filter(Boolean).join(' ')
                 }
@@ -58,6 +63,15 @@ export function Sidebar() {
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+/** Barra lateral fija (se oculta en celulares; ahí se usa el menú móvil). */
+export function Sidebar() {
+  return (
+    <aside className="sidebar">
+      <SidebarContent />
     </aside>
   )
 }

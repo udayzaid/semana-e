@@ -143,7 +143,7 @@ function SummaryCard({ icon: Icon, label, value, hint, loading, tone, onClick }:
           <Icon className="size-4" />
         </span>
       </div>
-      {loading ? <Skeleton className="mt-2 h-7 w-24" /> : <p className="mt-1 font-heading text-xl font-bold tabular-nums sm:text-2xl">{value}</p>}
+      {loading ? <Skeleton className="mt-2 h-7 w-24" /> : <p className="mt-1 font-heading text-lg font-bold break-words tabular-nums sm:text-2xl">{value}</p>}
       {hint && <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>}
     </Tag>
   )

@@ -6,6 +6,7 @@ import { CustomersPage } from '@/features/customers'
 import { DashboardPage } from '@/features/dashboard'
 import { InventoryPage } from '@/features/inventory'
 import { ProductsPage } from '@/features/products'
+import { NewSalePage, SalesPage } from '@/features/sales'
 
 export const router = createBrowserRouter([
   // El portal público del cliente ocupará "/" más adelante.
@@ -21,7 +22,8 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: 'inventario', element: <InventoryPage /> },
           { path: 'productos', element: <ProductsPage /> },
-          { path: 'ventas', element: <ComingSoon title="Ventas" /> },
+          { path: 'ventas', element: <SalesPage /> },
+          { path: 'ventas/nueva', element: <NewSalePage /> },
           { path: 'pedidos', element: <ComingSoon title="Pedidos" /> },
           { path: 'clientes', element: <CustomersPage /> },
           { path: 'distribucion', element: <ComingSoon title="Distribución" /> },

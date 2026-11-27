@@ -1,12 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Leaf, Loader2, LockKeyhole, Mail, PackageCheck, ShieldCheck, TrendingUp } from 'lucide-react'
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail, PackageCheck, ShieldCheck, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate, useLocation } from 'react-router-dom'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/stores/auth.store'
+import { LeafBackground } from '../components/LeafBackground'
+import { NatureBackground } from '../components/NatureBackground'
 import { loginSchema, type LoginFormValues } from '../schemas/login.schema'
 import { signIn } from '../services/auth.service'
 
@@ -50,53 +53,47 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
-      {/* Panel de marca (solo en pantallas grandes) */}
-      <aside className="relative hidden overflow-hidden bg-[#173d2b] p-12 text-white lg:flex lg:flex-col">
-        <div className="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-[#2f946b]/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-[#8cc9a6]/15 blur-3xl" />
+    <div className="flex min-h-screen flex-col bg-background lg:grid lg:grid-cols-[1.1fr_1fr]">
+      {/* Panel de marca (pantallas grandes) */}
+      <aside className="relative hidden overflow-hidden bg-brand-dark p-12 text-white lg:flex lg:flex-col">
+        <NatureBackground screen="large" />
+        <LeafBackground />
 
-        <div className="relative flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15">
-            <Leaf className="size-5" />
-          </div>
-          <div>
-            <p className="font-heading text-lg font-extrabold tracking-[0.12em]">VIDALID</p>
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-white/60">GESTIÓN INTELIGENTE</p>
-          </div>
+        {/* Logo protagonista, centrado */}
+        <div className="relative flex flex-1 flex-col items-center justify-center text-center">
+          <BrandLogo tone="white" className="h-24 drop-shadow-[0_10px_30px_rgba(0,0,0,0.35)] xl:h-32" />
+          <p className="mt-4 text-xs font-semibold tracking-[0.45em] text-brand-light">PRODUCTOS NATURALES</p>
+          <p className="mt-6 max-w-sm text-base leading-relaxed text-white/80">
+            Inventario, ventas y relación con tus comerciantes en un solo panel.
+          </p>
         </div>
 
-        <div className="relative mt-auto max-w-md">
-          <h1 className="font-heading text-4xl leading-tight font-bold tracking-tight">
-            Productos naturales, gestión clara.
-          </h1>
-          <p className="mt-4 text-sm leading-relaxed text-white/70">
-            Controla tu inventario, tus ventas y la relación con tus comerciantes desde un solo panel.
-          </p>
-          <ul className="mt-8 space-y-3">
+        <div className="relative">
+          <ul className="flex flex-wrap justify-center gap-2">
             {highlights.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm text-white/85">
-                <span className="grid size-8 place-items-center rounded-lg bg-white/10">
-                  <Icon className="size-4" />
-                </span>
+              <li key={text} className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/90 ring-1 ring-white/15 backdrop-blur-sm">
+                <Icon className="size-3.5" />
                 {text}
               </li>
             ))}
           </ul>
+          <p className="mt-6 text-center text-xs text-white/45">© {currentYear} Vidalid · Productos naturales</p>
         </div>
-
-        <p className="relative mt-12 text-xs text-white/40">© {currentYear} VIDALID</p>
       </aside>
 
+      {/* Banda de marca (celular y tablet) */}
+      <header className="relative flex h-48 shrink-0 items-center justify-center overflow-hidden bg-brand-dark lg:hidden">
+        <NatureBackground screen="small" />
+        <LeafBackground />
+        <div className="relative text-center">
+          <BrandLogo tone="white" className="h-16 drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]" />
+          <p className="mt-2 text-[10px] font-semibold tracking-[0.4em] text-brand-light">PRODUCTOS NATURALES</p>
+        </div>
+      </header>
+
       {/* Formulario */}
-      <main className="flex items-center justify-center px-4 py-10 sm:px-8">
+      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
-              <Leaf className="size-5" />
-            </div>
-            <p className="font-heading text-lg font-extrabold tracking-[0.12em] text-secondary-foreground">VIDALID</p>
-          </div>
 
           <h2 className="font-heading text-2xl font-bold tracking-tight">Iniciar sesión</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">Ingresa con tu cuenta para acceder al panel.</p>
