@@ -1,1 +1,2 @@
-// Hooks compartidos de la aplicación.
+// Hooks reutilizables entre módulos.
+export { useDebouncedValue } from './useDebouncedValue'

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { ComingSoon } from '@/components/shared/ComingSoon'
 import { LoginPage, RequireAuth } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
+import { ProductsPage } from '@/features/products'
 
 export const router = createBrowserRouter([
   // El portal público del cliente ocupará "/" más adelante.
@@ -17,7 +18,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'inventario', element: <ComingSoon title="Inventario" /> },
-          { path: 'productos', element: <ComingSoon title="Productos" /> },
+          { path: 'productos', element: <ProductsPage /> },
           { path: 'ventas', element: <ComingSoon title="Ventas" /> },
           { path: 'pedidos', element: <ComingSoon title="Pedidos" /> },
           { path: 'clientes', element: <ComingSoon title="Clientes / CRM" /> },
