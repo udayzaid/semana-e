@@ -1,1 +1,2 @@
-// Stores globales Zustand. Mantener aquí solo estado de cliente no sensible.
+// Estado global de la aplicación (Zustand).
+export { useAuthStore } from './auth.store'

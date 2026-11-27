@@ -1,3 +1,5 @@
-// Punto de entrada del módulo de autenticación.
-// Las pantallas y guards se implementarán en la siguiente tarea.
-export { supabase } from '../../services/supabase/client'
+// Módulo auth: inicio y cierre de sesión, perfil y protección de rutas.
+export { RequireAuth } from './components/RequireAuth'
+export { useSignOut } from './hooks/useSignOut'
+export { LoginPage } from './pages/LoginPage'
+export type { AuthStatus, Profile } from './types'
