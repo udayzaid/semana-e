@@ -1,4 +1,4 @@
-import { Activity, ArrowDownRight, ArrowUpRight, Boxes, BrainCircuit, CalendarDays, ChevronDown, CircleHelp, ClipboardList, CreditCard, LayoutDashboard, Package, Search, Settings, ShoppingBag, Truck, Users, Wallet } from 'lucide-react'
+import { Activity, ArrowDownRight, ArrowUpRight, Boxes, BrainCircuit, CalendarDays, ChevronDown, CircleHelp, ClipboardList, LayoutDashboard, Package, Search, Settings, ShoppingBag, Truck, Users, Wallet } from 'lucide-react'
 import './App.css'
 
 const stats = [

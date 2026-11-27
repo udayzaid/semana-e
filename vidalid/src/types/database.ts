@@ -1,8 +1,18 @@
-/** Tipos compartidos del dominio VIDALID. Se ampliarán al crear las migraciones SQL. */
-export type UserRole = 'admin' | 'seller' | 'warehouse' | 'delivery'
+/**
+ * Tipos compartidos del dominio VIDALID.
+ * Deben coincidir con los tipos enum de supabase/migrations/20261126130000_core_schema.sql.
+ */
+export type UserRole = 'admin' | 'customer'
 
-export type PaymentMethod = 'cash' | 'qr' | 'bank_transfer'
+export type CustomerType = 'retailer' | 'final_consumer'
 
+export type PaymentMethod = 'cash' | 'qr'
+
+export type SaleStatus = 'completed' | 'voided'
+
+export type MovementType = 'entry' | 'exit' | 'adjustment' | 'sale' | 'sale_void'
+
+/** Estados de pedido (Prioridad 2, aún sin tabla en la base de datos). */
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
