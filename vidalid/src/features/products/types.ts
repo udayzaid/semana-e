@@ -39,10 +39,7 @@ export interface ProductFilters {
   pageSize: number
 }
 
-export interface Paginated<T> {
-  rows: T[]
-  total: number
-}
+export type { Paginated } from '@/types/database'
 
 /** Datos editables de un producto (stock nunca se edita aquí: se usa Inventario). */
 export interface ProductInput {

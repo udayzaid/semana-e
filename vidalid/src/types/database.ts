@@ -22,6 +22,12 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled'
 
+/** Resultado paginado desde el servidor. */
+export interface Paginated<T> {
+  rows: T[]
+  total: number
+}
+
 export interface ProductSummary {
   id: string
   name: string

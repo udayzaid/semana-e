@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
+import { FormField } from '@/components/shared/FormField'
 import { SimpleSelect } from '@/components/shared/SimpleSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -177,15 +178,15 @@ export function ProductFormDialog({ open, onOpenChange, product, categories }: P
 
           {/* Datos */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nombre" htmlFor="name" error={errors.name?.message} className="sm:col-span-2">
+            <FormField label="Nombre" htmlFor="name" error={errors.name?.message} className="sm:col-span-2">
               <Input id="name" placeholder="Omega 3 Premium" aria-invalid={!!errors.name} {...register('name')} />
-            </Field>
+            </FormField>
 
-            <Field label="SKU (código)" htmlFor="sku" error={errors.sku?.message}>
+            <FormField label="SKU (código)" htmlFor="sku" error={errors.sku?.message}>
               <Input id="sku" placeholder="VID-001" className="uppercase" aria-invalid={!!errors.sku} {...register('sku')} />
-            </Field>
+            </FormField>
 
-            <Field label="Categoría" htmlFor="categoryId" error={errors.categoryId?.message}>
+            <FormField label="Categoría" htmlFor="categoryId" error={errors.categoryId?.message}>
               <Controller
                 control={control}
                 name="categoryId"
@@ -201,35 +202,35 @@ export function ProductFormDialog({ open, onOpenChange, product, categories }: P
                   />
                 )}
               />
-            </Field>
+            </FormField>
 
-            <Field label="Costo (Bs)" htmlFor="cost" error={errors.cost?.message}>
+            <FormField label="Costo (Bs)" htmlFor="cost" error={errors.cost?.message}>
               <Input id="cost" type="number" inputMode="decimal" step="0.01" min="0" aria-invalid={!!errors.cost} {...register('cost')} />
-            </Field>
+            </FormField>
 
-            <Field
+            <FormField
               label="Precio de venta (Bs)"
               htmlFor="salePrice"
               error={errors.salePrice?.message}
               hint={priceBelowCost ? 'El precio es menor que el costo.' : undefined}
             >
               <Input id="salePrice" type="number" inputMode="decimal" step="0.01" min="0" aria-invalid={!!errors.salePrice} {...register('salePrice')} />
-            </Field>
+            </FormField>
 
-            <Field label="Unidad de medida" htmlFor="unit" error={errors.unit?.message}>
+            <FormField label="Unidad de medida" htmlFor="unit" error={errors.unit?.message}>
               <Input id="unit" list="unit-suggestions" aria-invalid={!!errors.unit} {...register('unit')} />
               <datalist id="unit-suggestions">
                 {UNIT_SUGGESTIONS.map((unit) => (
                   <option key={unit} value={unit} />
                 ))}
               </datalist>
-            </Field>
+            </FormField>
 
-            <Field label="Stock mínimo" htmlFor="minStock" error={errors.minStock?.message} hint="Se avisará cuando el disponible llegue a este número.">
+            <FormField label="Stock mínimo" htmlFor="minStock" error={errors.minStock?.message} hint="Se avisará cuando el disponible llegue a este número.">
               <Input id="minStock" type="number" inputMode="numeric" step="1" min="0" aria-invalid={!!errors.minStock} {...register('minStock')} />
-            </Field>
+            </FormField>
 
-            <Field label="Descripción" htmlFor="description" error={errors.description?.message} className="sm:col-span-2">
+            <FormField label="Descripción" htmlFor="description" error={errors.description?.message} className="sm:col-span-2">
               <Textarea
                 id="description"
                 rows={3}
@@ -237,7 +238,7 @@ export function ProductFormDialog({ open, onOpenChange, product, categories }: P
                 aria-invalid={!!errors.description}
                 {...register('description')}
               />
-            </Field>
+            </FormField>
 
             <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">
               <div>
@@ -264,28 +265,5 @@ export function ProductFormDialog({ open, onOpenChange, product, categories }: P
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-interface FieldProps {
-  label: string
-  htmlFor: string
-  error?: string
-  hint?: string
-  className?: string
-  children: React.ReactNode
-}
-
-function Field({ label, htmlFor, error, hint, className, children }: FieldProps) {
-  return (
-    <div className={['space-y-1.5', className].filter(Boolean).join(' ')}>
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-      {error ? (
-        <p className="text-xs text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
   )
 }

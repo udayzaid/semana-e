@@ -99,6 +99,40 @@ export async function listProducts(filters: ProductFilters): Promise<Paginated<P
   return { rows: data.map(mapProduct), total: count ?? 0 }
 }
 
+/** Opción ligera de producto para selectores (inventario, ventas, pedidos). */
+export interface ProductOption {
+  id: string
+  name: string
+  sku: string
+  unit: string
+  salePrice: number
+  stock: number
+  availableStock: number
+  stockStatus: StockStatus
+}
+
+export async function listProductOptions(): Promise<ProductOption[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, name, sku, unit, sale_price, stock, available_stock, stock_status')
+    .eq('is_active', true)
+    .order('name')
+    .returns<
+      { id: string; name: string; sku: string; unit: string; sale_price: number; stock: number; available_stock: number; stock_status: StockStatus }[]
+    >()
+  if (error) throw error
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    unit: row.unit,
+    salePrice: Number(row.sale_price),
+    stock: row.stock,
+    availableStock: row.available_stock,
+    stockStatus: row.stock_status,
+  }))
+}
+
 export async function createProduct(input: ProductInput): Promise<Product> {
   const { data, error } = await supabase.from('products').insert(toRow(input)).select(columns).single<ProductRow>()
   if (error) throw error

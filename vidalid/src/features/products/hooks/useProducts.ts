@@ -3,6 +3,7 @@ import {
   createProduct,
   deleteProduct,
   deleteProductImage,
+  listProductOptions,
   listProducts,
   setProductActive,
   updateProduct,
@@ -14,6 +15,12 @@ import { categoryKeys } from './useCategories'
 export const productKeys = {
   all: ['products'] as const,
   list: (filters: ProductFilters) => ['products', 'list', filters] as const,
+  options: ['products', 'options'] as const,
+}
+
+/** Productos activos para selectores. */
+export function useProductOptions() {
+  return useQuery({ queryKey: productKeys.options, queryFn: listProductOptions })
 }
 
 export function useProducts(filters: ProductFilters) {

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { ComingSoon } from '@/components/shared/ComingSoon'
 import { LoginPage, RequireAuth } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
+import { InventoryPage } from '@/features/inventory'
 import { ProductsPage } from '@/features/products'
 
 export const router = createBrowserRouter([
@@ -17,7 +18,7 @@ export const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: <DashboardPage /> },
-          { path: 'inventario', element: <ComingSoon title="Inventario" /> },
+          { path: 'inventario', element: <InventoryPage /> },
           { path: 'productos', element: <ProductsPage /> },
           { path: 'ventas', element: <ComingSoon title="Ventas" /> },
           { path: 'pedidos', element: <ComingSoon title="Pedidos" /> },
