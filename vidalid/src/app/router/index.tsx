@@ -8,7 +8,7 @@ import { DashboardPage } from '@/features/dashboard'
 import { DeliveriesPage } from '@/features/deliveries'
 import { InventoryPage } from '@/features/inventory'
 import { OrdersPage } from '@/features/orders'
-import { CartPage, CatalogPage, MyAccountPage, OrderSentPage, PortalHomePage, PortalLayout, ProductDetailPage } from '@/features/portal'
+import { CartPage, MyAccountPage, OrderSentPage, PortalLayout, ProductDetailPage, StorePage } from '@/features/portal'
 import { ProductsPage } from '@/features/products'
 import { NewSalePage, SalesPage } from '@/features/sales'
 
@@ -17,8 +17,9 @@ export const router = createBrowserRouter([
   {
     element: <PortalLayout />,
     children: [
-      { path: '/', element: <PortalHomePage /> },
-      { path: '/catalogo', element: <CatalogPage /> },
+      // La tienda es la página principal; /catalogo se mantiene por compatibilidad de enlaces.
+      { path: '/', element: <StorePage /> },
+      { path: '/catalogo', element: <StorePage /> },
       { path: '/producto/:id', element: <ProductDetailPage /> },
       { path: '/carrito', element: <CartPage /> },
       { path: '/pedido-enviado', element: <OrderSentPage /> },

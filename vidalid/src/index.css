@@ -63,6 +63,8 @@
 @theme inline {
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --font-heading: 'Manrope', 'DM Sans', sans-serif;
+  /* Serif de acento (como "Salud natural" del catálogo de marca) */
+  --font-serif: 'Fraunces', Georgia, serif;
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);

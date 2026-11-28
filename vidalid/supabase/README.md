@@ -16,6 +16,9 @@ Las migraciones están en `migrations/` y se aplican **en orden** (por la fecha 
 | `20261127130000_sales_summary.sql` | Resumen de ventas por periodo |
 | `20261127140000_dashboard.sql` | Ventas por día y productos más vendidos |
 | `20261127150000_ai_analytics.sql` | Baja rotación, clientes frecuentes y sugerencias de reposición |
+| `20261127160000_orders.sql` | Pedidos, reservas de stock e historial de estados |
+| `20261128090000_customer_accounts.sql` | Cuentas de clientes desde el portal |
+| `20261128100000_store_ai.sql` | Límite de uso del chat de la tienda (`consume_ai_quota`) |
 
 ## Reglas de negocio
 
@@ -65,6 +68,18 @@ set role = 'admin', full_name = 'Administrador VIDALID'
 where email = 'tu-correo@ejemplo.com';
 ```
 
+## Catálogo inicial (`seed/`)
+
+Datos del *Catálogo de productos · edición 2026* (4 líneas y 72 productos con códigos T-, P-, C-, J-).
+No son migraciones: se ejecutan una vez en el SQL Editor (se pueden repetir sin duplicar).
+
+| Archivo | Qué hace |
+|---|---|
+| `seed/01_catalogo_vidalid.sql` | Crea las líneas Tinturas, Polvos, Cápsulas y Jarabes y los 72 productos, **inactivos** y con precio 0 (el catálogo no trae precios) |
+| `seed/02_precios_catalogo.sql` | Precio, costo y stock mínimo de cada producto (**precios estimados**, costo = 60%); al ejecutarla se **activan** y aparecen en la tienda. Ajusta los valores y vuelve a ejecutarla cuando tengas los precios reales |
+
+Después, registra el stock de cada producto en **Inventario → Registrar ingreso**.
+
 ## VIDALID AI (Edge Function `vidalid-ai`)
 
 Arquitectura: **React → Edge Function → proveedor de IA (Gemini gratis) → funciones SQL autorizadas → respuesta**.
@@ -106,6 +121,28 @@ npx supabase functions deploy vidalid-ai
 ```
 
 Para cambiar algo de la IA, edita `functions/vidalid-ai/index.ts` y vuelve a desplegar.
+
+## Chat de la tienda (Edge Function `vidalid-store-ai`)
+
+Asistente para clientes y visitantes del portal (botón **¿Te ayudamos?**). Responde sobre
+productos, precios, disponibilidad y cómo comprar; si el cliente inició sesión, también sobre
+el estado de **sus** pedidos.
+
+- Solo lee el catálogo público (`catalog_products`: sin costos ni stock interno) y los pedidos
+  con el token del propio cliente (RLS).
+- Límite de uso: 15 mensajes cada 10 minutos por persona (usuario o IP, guardada como hash) y
+  500 mensajes por día en toda la tienda. Se ajusta en las constantes del inicio del archivo.
+- Usa los mismos secretos que `vidalid-ai` (`AI_API_KEY`, ya configurado).
+
+Pasos:
+
+1. Aplica la migración `20261128100000_store_ai.sql` en el SQL Editor.
+2. **Edge Functions → Deploy a new function → Via Editor**. Nombre: `vidalid-store-ai`.
+   Pega el contenido de `functions/vidalid-store-ai/index.ts` y pulsa **Deploy**.
+3. En la función, abre **Details** y **desactiva Verify JWT** (*Enforce JWT verification*):
+   los visitantes sin cuenta no tienen token. La función se protege con el límite de uso.
+
+Con la CLI: `npx supabase functions deploy vidalid-store-ai --no-verify-jwt`.
 
 ## Llamar a las funciones desde el frontend
 

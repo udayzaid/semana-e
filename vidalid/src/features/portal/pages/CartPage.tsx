@@ -1,17 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Loader2, Minus, Plus, ShoppingBag, Store, Trash2, Truck } from 'lucide-react'
-import { useEffect } from 'react'
+import { AlertTriangle, ClipboardList, Loader2, LogIn, Minus, Plus, Receipt, ShoppingBag, Store, Trash2, Truck, UserPlus, UserRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { FormField } from '@/components/shared/FormField'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toUserMessage } from '@/lib/errors'
 import { fromCents, toCents } from '@/lib/money'
 import { cn, formatBolivianos } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth.store'
+import { MyOrdersList, MyPurchasesList } from '../components/AccountLists'
 import { ProductImage } from '../components/ProductImage'
 import { useMyCustomer } from '../hooks/useAccount'
 import { useCartProducts, useSubmitWebOrder } from '../hooks/useCatalog'
@@ -33,8 +36,8 @@ const checkoutSchema = z
 
 type CheckoutValues = z.infer<typeof checkoutSchema>
 
-/** RF-78 a RF-81 · Carrito y solicitud de pedido sin registro. */
-export function CartPage() {
+/** RF-78 a RF-81 · Carrito y solicitud de pedido (con o sin cuenta). */
+function CartTab() {
   const navigate = useNavigate()
   const { items, setQuantity, remove, clear } = usePortalCart()
   const live = useCartProducts(items.map((item) => item.productId))
@@ -66,11 +69,26 @@ export function CartPage() {
   const totalCents = lines.filter((line) => !line.unavailable).reduce((sum, line) => sum + toCents(line.unitPrice) * line.quantity, 0)
   const hasProblems = lines.some((line) => line.unavailable || line.tooMany)
 
+  // Al enviar sin sesión se pregunta: ingresar, crear cuenta o continuar como invitado.
+  const isLoggedIn = useAuthStore((state) => state.status === 'authenticated')
+  const [askAccount, setAskAccount] = useState(false)
+  const [pendingValues, setPendingValues] = useState<CheckoutValues | null>(null)
+
   const onSubmit = (values: CheckoutValues) => {
     if (hasProblems) {
       toast.error('Revisa los productos marcados antes de enviar tu pedido.')
       return
     }
+    if (!isLoggedIn && !pendingValues) {
+      setPendingValues(values)
+      setAskAccount(true)
+      return
+    }
+    sendOrder(values)
+  }
+
+  const sendOrder = (values: CheckoutValues) => {
+    setAskAccount(false)
     submit.mutate(
       {
         items: lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
@@ -86,32 +104,42 @@ export function CartPage() {
           clear()
           navigate('/pedido-enviado', { replace: true, state: summary })
         },
-        onError: (error) => toast.error(toUserMessage(error, 'No se pudo enviar tu pedido. Inténtalo de nuevo.')),
+        onError: (error) => {
+          setPendingValues(null)
+          toast.error(toUserMessage(error, 'No se pudo enviar tu pedido. Inténtalo de nuevo.'))
+        },
       },
     )
   }
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-20 text-center">
+      <div className="rounded-2xl border border-dashed bg-card px-4 py-16 text-center">
         <span className="mx-auto grid size-16 place-items-center rounded-3xl bg-secondary text-brand">
           <ShoppingBag className="size-8" />
         </span>
-        <h1 className="mt-4 font-heading text-2xl font-bold">Tu pedido está vacío</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Agrega productos desde el catálogo para enviar tu solicitud.</p>
-        <Link to="/catalogo" className={buttonVariants({ size: 'lg', className: 'mt-6 h-11 px-6' })}>
-          Ver catálogo
+        <h2 className="mt-4 font-heading text-2xl font-bold">Tu carrito está vacío</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Agrega productos desde la tienda para enviar tu pedido.</p>
+        <Link to="/" className={buttonVariants({ size: 'lg', className: 'mt-6 h-11 px-6' })}>
+          Ir a la tienda
         </Link>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="font-heading text-3xl font-bold">Mi pedido</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Revisa tus productos y envía tu solicitud. No necesitas crear una cuenta.</p>
+    <div>
+      <AccountChoiceDialog
+        open={askAccount}
+        onOpenChange={(open) => {
+          setAskAccount(open)
+          if (!open) setPendingValues(null)
+        }}
+        onGuest={() => pendingValues && sendOrder(pendingValues)}
+        sending={submit.isPending}
+      />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* Productos */}
         <section className="overflow-hidden rounded-2xl border bg-card">
           <ul className="divide-y">
@@ -149,7 +177,7 @@ export function CartPage() {
             ))}
           </ul>
           <div className="flex items-center justify-between border-t bg-muted/30 px-4 py-3">
-            <Link to="/catalogo" className="text-sm font-semibold text-primary hover:underline">
+            <Link to="/" className="text-sm font-semibold text-primary hover:underline">
               + Agregar más productos
             </Link>
             <p className="text-sm">
@@ -207,5 +235,106 @@ export function CartPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+type CartTabKey = 'carrito' | 'pedidos' | 'compras'
+
+/** "Mi pedido": carrito, mis pedidos y mis compras en un solo lugar. La pestaña vive en la URL (?tab=). */
+export function CartPage() {
+  const [params, setParams] = useSearchParams()
+  const tab = (['carrito', 'pedidos', 'compras'].includes(params.get('tab') ?? '') ? params.get('tab') : 'carrito') as CartTabKey
+  const count = usePortalCart((state) => state.items.reduce((sum, item) => sum + item.quantity, 0))
+  const isCustomer = useAuthStore((state) => state.status === 'authenticated' && state.profile?.role === 'customer')
+
+  const tabs: { key: CartTabKey; label: string; icon: typeof ShoppingBag; badge?: number }[] = [
+    { key: 'carrito', label: 'Carrito', icon: ShoppingBag, badge: count },
+    { key: 'pedidos', label: 'Mis pedidos', icon: ClipboardList },
+    { key: 'compras', label: 'Mis compras', icon: Receipt },
+  ]
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <h1 className="font-heading text-3xl font-bold">Mi pedido</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Tu carrito, el estado de tus pedidos y tus compras.</p>
+
+      <div className="mt-6 flex gap-1 overflow-x-auto rounded-xl bg-muted p-1 sm:inline-flex" role="tablist" aria-label="Mi pedido">
+        {tabs.map(({ key, label, icon: Icon, badge }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setParams(key === 'carrito' ? {} : { tab: key }, { replace: true })}
+            className={cn(
+              'flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition',
+              tab === key ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon className="size-4" /> {label}
+            {!!badge && <span className="rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground tabular-nums">{badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6">
+        {tab === 'carrito' && <CartTab />}
+        {tab !== 'carrito' &&
+          (isCustomer ? (
+            <section className="rounded-2xl border bg-card p-5">{tab === 'pedidos' ? <MyOrdersList /> : <MyPurchasesList />}</section>
+          ) : (
+            <GuestPrompt what={tab === 'pedidos' ? 'el estado de tus pedidos' : 'tus compras'} from={`/carrito?tab=${tab}`} />
+          ))}
+      </div>
+    </div>
+  )
+}
+
+/** Para ver pedidos y compras hace falta una cuenta de cliente. */
+function GuestPrompt({ what, from }: { what: string; from: string }) {
+  return (
+    <div className="rounded-2xl border bg-card px-6 py-12 text-center">
+      <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-secondary text-brand">
+        <UserRound className="size-7" />
+      </span>
+      <h2 className="mt-4 font-heading text-xl font-bold">Inicia sesión para ver {what}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+        Con tu cuenta de cliente puedes seguir cada pedido y revisar tu historial de compras. Si pediste sin cuenta, te contactaremos por WhatsApp.
+      </p>
+      <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+        <Link to="/login" state={{ from }} className={buttonVariants({ size: 'lg', className: 'h-11 px-6' })}>
+          <LogIn /> Iniciar sesión
+        </Link>
+        <Link to="/registro" className={buttonVariants({ size: 'lg', variant: 'outline', className: 'h-11 px-6' })}>
+          <UserPlus /> Crear cuenta
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+/** Antes de enviar sin sesión: ingresar, crear cuenta o continuar como invitado (la cuenta es opcional). */
+function AccountChoiceDialog({ open, onOpenChange, onGuest, sending }: { open: boolean; onOpenChange: (open: boolean) => void; onGuest: () => void; sending: boolean }) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !sending && onOpenChange(next)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>¿Cómo quieres continuar?</DialogTitle>
+          <DialogDescription>Con una cuenta puedes seguir el estado de tu pedido y ver tus compras. Tu carrito se mantiene.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          <Link to="/login" state={{ from: '/carrito' }} className={buttonVariants({ size: 'lg', className: 'h-11' })}>
+            <LogIn /> Iniciar sesión
+          </Link>
+          <Link to="/registro" state={{ from: '/carrito' }} className={buttonVariants({ size: 'lg', variant: 'outline', className: 'h-11' })}>
+            <UserPlus /> Crear cuenta
+          </Link>
+          <Button size="lg" variant="ghost" className="h-11" onClick={onGuest} disabled={sending}>
+            {sending && <Loader2 className="animate-spin" />}
+            Continuar sin cuenta
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

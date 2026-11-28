@@ -6,9 +6,12 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { useChatStore } from '../store/chat.store'
 import type { AiAgent } from '../types'
+
+/** Asistentes del panel administrativo (el de la tienda vive en el portal). */
+type AdminAgent = Exclude<AiAgent, 'store'>
 import { ChatPanel } from './ChatPanel'
 
-const agents: Record<AiAgent, { label: string; title: string; description: string; suggestions: string[] }> = {
+const agents: Record<AdminAgent, { label: string; title: string; description: string; suggestions: string[] }> = {
   admin: {
     label: 'Administrativo',
     title: 'VIDALID AI',
@@ -30,7 +33,7 @@ const agents: Record<AiAgent, { label: string; title: string; description: strin
 export function AiChatLauncher() {
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
-  const [agent, setAgent] = useState<AiAgent>('admin')
+  const [agent, setAgent] = useState<AdminAgent>('admin')
   const pending = useChatStore((state) => state.pending.admin || state.pending.products)
 
   // En la página completa del asistente el botón sobra.
@@ -61,7 +64,7 @@ export function AiChatLauncher() {
           <SheetTitle className="sr-only">VIDALID AI</SheetTitle>
           <div className="flex items-center gap-2 border-b px-3 py-2 pr-12">
             <div className="flex flex-1 gap-1 rounded-lg bg-muted p-1" role="tablist" aria-label="Asistente">
-              {(Object.keys(agents) as AiAgent[]).map((key) => (
+              {(Object.keys(agents) as AdminAgent[]).map((key) => (
                 <button
                   key={key}
                   type="button"

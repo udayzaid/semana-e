@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2, MailCheck, Store, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { z } from 'zod'
 import { FormField } from '@/components/shared/FormField'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -36,6 +36,7 @@ type RegisterValues = z.output<typeof registerSchema>
 
 /** Registro OPCIONAL de clientes (minoristas o consumidores finales) desde el portal. */
 export function RegisterPage() {
+  const location = useLocation()
   const status = useAuthStore((state) => state.status)
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -47,8 +48,9 @@ export function RegisterPage() {
   })
   const customerType = useWatch({ control, name: 'customerType' })
 
-  // Si la sesión se inicia al registrarse, ir directo a su cuenta.
-  if (status === 'authenticated' && !pendingEmail) return <Navigate to="/mi-cuenta" replace />
+  // Si la sesión se inicia al registrarse: volver a donde venía (p. ej. el carrito) o a su cuenta.
+  const from = (location.state as { from?: string } | null)?.from
+  if (status === 'authenticated' && !pendingEmail) return <Navigate to={from && !from.startsWith('/admin') ? from : '/mi-cuenta'} replace />
 
   const onSubmit = async (values: RegisterValues) => {
     setFormError(null)

@@ -15,9 +15,27 @@ interface ChatPanelProps {
   suggestions: string[]
   /** page = tarjeta dentro de una página · drawer = ocupa todo el panel lateral */
   variant?: 'page' | 'drawer'
+  /** Textos opcionales (la tienda usa un tono para clientes). */
+  intro?: string
+  pendingText?: string
+  placeholder?: string
+  maxLength?: number
+  /** Mostrar de qué consultas salió la respuesta. */
+  showSources?: boolean
 }
 
-export function ChatPanel({ agent, title, description, suggestions, variant = 'page' }: ChatPanelProps) {
+export function ChatPanel({
+  agent,
+  title,
+  description,
+  suggestions,
+  variant = 'page',
+  intro = 'Respondo con datos reales de VIDALID. Prueba con una de estas preguntas:',
+  pendingText = 'Consultando los datos de VIDALID…',
+  placeholder = 'Escribe tu pregunta… (Enter para enviar)',
+  maxLength = 2000,
+  showSources = true,
+}: ChatPanelProps) {
   const messages = useChatStore((state) => state.conversations[agent])
   const pending = useChatStore((state) => state.pending[agent])
   const { add, setPending, clear } = useChatStore.getState()
@@ -90,7 +108,7 @@ export function ChatPanel({ agent, title, description, suggestions, variant = 'p
               <Bot className="size-6" />
             </div>
             <p className="mt-3 font-heading font-semibold">¿En qué te ayudo hoy?</p>
-            <p className="mt-1 text-sm text-muted-foreground">Respondo con datos reales de VIDALID. Prueba con una de estas preguntas:</p>
+            <p className="mt-1 text-sm text-muted-foreground">{intro}</p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {suggestions.map((suggestion) => (
                 <button
@@ -129,7 +147,7 @@ export function ChatPanel({ agent, title, description, suggestions, variant = 'p
               >
                 {message.role === 'user' ? <p className="text-sm whitespace-pre-wrap">{message.content}</p> : <SimpleMarkdown text={message.content} />}
               </div>
-              {message.tools && message.tools.length > 0 && (
+              {showSources && message.tools && message.tools.length > 0 && (
                 <p className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                   <Database className="size-3" /> Datos de: {[...new Set(message.tools)].map((tool) => toolLabels[tool] ?? tool).join(', ')}
                 </p>
@@ -143,7 +161,7 @@ export function ChatPanel({ agent, title, description, suggestions, variant = 'p
             <span className="grid size-7 place-items-center rounded-full bg-secondary text-brand">
               <Loader2 className="size-3.5 animate-spin" />
             </span>
-            Consultando los datos de VIDALID…
+            {pendingText}
           </div>
         )}
         <div ref={endRef} />
@@ -155,10 +173,10 @@ export function ChatPanel({ agent, title, description, suggestions, variant = 'p
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={onKeyDown}
           rows={1}
-          maxLength={2000}
-          placeholder="Escribe tu pregunta… (Enter para enviar)"
+          maxLength={maxLength}
+          placeholder={placeholder}
           className="max-h-32 min-h-10 resize-none bg-card"
-          aria-label="Pregunta para VIDALID AI"
+          aria-label={`Pregunta para ${title}`}
           disabled={pending}
         />
         <Button type="submit" size="icon-lg" disabled={pending || !input.trim()} aria-label="Enviar pregunta">

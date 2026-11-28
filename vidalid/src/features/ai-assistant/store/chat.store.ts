@@ -11,8 +11,8 @@ interface ChatState {
 
 /** Conversaciones en memoria (se conservan al cambiar de página; se borran al cerrar sesión o recargar). */
 export const useChatStore = create<ChatState>()((set) => ({
-  conversations: { admin: [], products: [] },
-  pending: { admin: false, products: false },
+  conversations: { admin: [], products: [], store: [] },
+  pending: { admin: false, products: false, store: false },
   add: (agent, message) =>
     set((state) => ({
       conversations: {

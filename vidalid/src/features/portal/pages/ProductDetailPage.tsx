@@ -22,7 +22,7 @@ export function ProductDetailPage() {
 
   if (query.isLoading) {
     return (
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-2">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 md:grid-cols-2">
         <Skeleton className="aspect-square rounded-3xl" />
         <div className="space-y-3">
           <Skeleton className="h-8 w-2/3" />
@@ -38,7 +38,7 @@ export function ProductDetailPage() {
       <div className="mx-auto max-w-xl px-4 py-20 text-center">
         <p className="font-heading text-xl font-bold">Producto no disponible</p>
         <p className="mt-2 text-sm text-muted-foreground">Es posible que ya no esté en el catálogo.</p>
-        <Link to="/catalogo" className={buttonVariants({ className: 'mt-6' })}>
+        <Link to="/" className={buttonVariants({ className: 'mt-6' })}>
           Ver catálogo
         </Link>
       </div>
@@ -56,8 +56,8 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Volver al catálogo
       </Link>
 
@@ -65,7 +65,7 @@ export function ProductDetailPage() {
         <ProductImage imagePath={product.imagePath} name={product.name} className="aspect-square w-full rounded-3xl border" />
 
         <div>
-          <Link to={`/catalogo?categoria=${product.categoryId}`} className="text-xs font-semibold tracking-wide text-brand uppercase hover:underline">
+          <Link to={`/?categoria=${product.categoryId}`} className="text-xs font-semibold tracking-wide text-brand uppercase hover:underline">
             {product.categoryName}
           </Link>
           <h1 className="mt-1 font-heading text-3xl font-bold">{product.name}</h1>

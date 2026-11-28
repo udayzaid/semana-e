@@ -1,4 +1,5 @@
-export type AiAgent = 'admin' | 'products'
+/** admin y products: panel administrativo · store: chat de la tienda para clientes y visitantes. */
+export type AiAgent = 'admin' | 'products' | 'store'
 
 export interface ChatMessage {
   id: string
@@ -23,4 +24,8 @@ export const toolLabels: Record<string, string> = {
   restock_suggestions: 'Sugerencias de reposición',
   search_products: 'Búsqueda de productos',
   products_by_category: 'Productos por categoría',
+  search_catalog: 'Catálogo de la tienda',
+  list_categories: 'Líneas de productos',
+  products_in_category: 'Productos por línea',
+  my_orders: 'Tus pedidos',
 }

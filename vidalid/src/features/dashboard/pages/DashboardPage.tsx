@@ -61,7 +61,7 @@ function greeting(hour: number): string {
 export function DashboardPage() {
   const p = usePeriods()
   const profile = useAuthStore((state) => state.profile)
-  const firstName = profile?.fullName.split(' ')[0] || 'Administrador'
+  const firstName = profile?.fullName.split(' ')[0] || ' '
 
   const today = useSalesSummary(p.dayFrom, p.dayTo)
   const month = useSalesSummary(p.monthFrom, p.monthTo)

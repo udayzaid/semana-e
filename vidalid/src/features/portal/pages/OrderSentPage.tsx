@@ -52,7 +52,7 @@ export function OrderSentPage() {
             <MessageCircle /> Avisar por WhatsApp
           </a>
         )}
-        <Link to="/catalogo" className={buttonVariants({ size: 'lg', variant: 'outline', className: 'h-12 px-6 text-base' })}>
+        <Link to="/" className={buttonVariants({ size: 'lg', variant: 'outline', className: 'h-12 px-6 text-base' })}>
           Seguir viendo productos
         </Link>
       </div>

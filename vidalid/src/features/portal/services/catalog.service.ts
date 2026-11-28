@@ -94,6 +94,30 @@ export async function listFeatured(limit = 8): Promise<CatalogProduct[]> {
   return data.map(mapRow)
 }
 
+/** Resumen real del catálogo para la portada: totales y portada (foto) de cada línea. */
+export interface CatalogOverview {
+  totalProducts: number
+  inStockProducts: number
+  byCategory: Record<string, { count: number; coverImage: string | null }>
+}
+
+export async function getCatalogOverview(): Promise<CatalogOverview> {
+  const { data, error } = await supabase
+    .from('catalog_products')
+    .select('category_id, image_path, in_stock')
+    .limit(2000)
+    .returns<{ category_id: string; image_path: string | null; in_stock: boolean }[]>()
+  if (error) throw error
+
+  const byCategory: CatalogOverview['byCategory'] = {}
+  for (const row of data) {
+    const entry = (byCategory[row.category_id] ??= { count: 0, coverImage: null })
+    entry.count += 1
+    if (!entry.coverImage && row.image_path) entry.coverImage = row.image_path
+  }
+  return { totalProducts: data.length, inStockProducts: data.filter((row) => row.in_stock).length, byCategory }
+}
+
 export async function listCatalogCategories(): Promise<CatalogCategory[]> {
   const { data, error } = await supabase.from('categories').select('id, name, description').eq('is_active', true).order('name').returns<CatalogCategory[]>()
   if (error) throw error

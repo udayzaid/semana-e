@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  getCatalogOverview,
   getCatalogProduct,
   getCatalogProductsByIds,
   listCatalog,
@@ -29,6 +30,10 @@ export function useCatalogProduct(id: string | undefined) {
 
 export function useFeaturedProducts() {
   return useQuery({ queryKey: catalogKeys.featured, queryFn: () => listFeatured(8) })
+}
+
+export function useCatalogOverview() {
+  return useQuery({ queryKey: [...catalogKeys.all, 'overview'], queryFn: getCatalogOverview, staleTime: 5 * 60_000 })
 }
 
 export function useCatalogCategories() {
