@@ -1,4 +1,4 @@
-import { ArrowLeft, Banknote, Loader2, Minus, Plus, QrCode, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { ArrowLeft, Loader2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -13,18 +13,11 @@ import { useProductOptions } from '@/features/products/hooks/useProducts'
 import { toUserMessage } from '@/lib/errors'
 import { fromCents, parseAmount, toCents } from '@/lib/money'
 import { cn, formatBolivianos } from '@/lib/utils'
+import { PaymentFields } from '../components/PaymentFields'
+import { usePaymentForm } from '../hooks/usePaymentForm'
 import { ReceiptDialog } from '../components/ReceiptDialog'
 import { useRegisterSale } from '../hooks/useSales'
 import { useCartStore } from '../store/cart.store'
-import type { PaymentInput } from '../types'
-
-type PayMode = 'cash' | 'qr' | 'mixed'
-
-const payModes: { value: PayMode; label: string; icon: typeof Banknote }[] = [
-  { value: 'cash', label: 'Efectivo', icon: Banknote },
-  { value: 'qr', label: 'QR', icon: QrCode },
-  { value: 'mixed', label: 'Mixto', icon: Wallet },
-]
 
 /** Flujo de venta: cliente → productos → existencias → total → pago → confirmar → comprobante. */
 export function NewSalePage() {
@@ -34,10 +27,6 @@ export function NewSalePage() {
 
   const [pickerKey, setPickerKey] = useState(0)
   const [discountText, setDiscountText] = useState('')
-  const [payMode, setPayMode] = useState<PayMode>('cash')
-  const [cashReceivedText, setCashReceivedText] = useState('')
-  const [mixedCashText, setMixedCashText] = useState('')
-  const [qrReference, setQrReference] = useState('')
   const [notes, setNotes] = useState('')
   const [receiptId, setReceiptId] = useState<string | null>(null)
 
@@ -45,10 +34,7 @@ export function NewSalePage() {
   const subtotalCents = lines.reduce((sum, line) => sum + toCents(line.unitPrice) * line.quantity, 0)
   const discountCents = Math.min(toCents(parseAmount(discountText)), subtotalCents)
   const totalCents = subtotalCents - discountCents
-  const cashReceivedCents = toCents(parseAmount(cashReceivedText))
-  const mixedCashCents = Math.min(toCents(parseAmount(mixedCashText)), totalCents)
-  const mixedQrCents = totalCents - mixedCashCents
-  const changeCents = payMode === 'cash' && cashReceivedCents > totalCents ? cashReceivedCents - totalCents : 0
+  const payment = usePaymentForm(totalCents)
 
   // Avisos de stock con datos actualizados (otra venta pudo consumir unidades).
   const stockIssues = lines.filter((line) => {
@@ -59,27 +45,12 @@ export function NewSalePage() {
   const problems: string[] = []
   if (lines.length === 0) problems.push('Agrega al menos un producto.')
   if (toCents(parseAmount(discountText)) > subtotalCents) problems.push('El descuento no puede superar el subtotal.')
-  if (payMode === 'cash' && cashReceivedText && cashReceivedCents < totalCents) problems.push('El efectivo recibido es menor al total.')
-  if (payMode === 'mixed' && (mixedCashCents <= 0 || mixedQrCents <= 0)) problems.push('En pago mixto indica un monto en efectivo menor al total.')
+  if (payment.problem) problems.push(payment.problem)
   if (stockIssues.length) problems.push('Hay productos con más cantidad que el stock disponible.')
-
-  const buildPayments = (): PaymentInput[] => {
-    if (totalCents === 0) return []
-    const reference = qrReference.trim() || null
-    if (payMode === 'cash') return [{ method: 'cash', amount: fromCents(totalCents), reference: null }]
-    if (payMode === 'qr') return [{ method: 'qr', amount: fromCents(totalCents), reference }]
-    return [
-      { method: 'cash', amount: fromCents(mixedCashCents), reference: null },
-      { method: 'qr', amount: fromCents(mixedQrCents), reference },
-    ]
-  }
 
   const resetPayment = () => {
     setDiscountText('')
-    setPayMode('cash')
-    setCashReceivedText('')
-    setMixedCashText('')
-    setQrReference('')
+    payment.reset()
     setNotes('')
   }
 
@@ -92,7 +63,7 @@ export function NewSalePage() {
       {
         customerId,
         items: lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
-        payments: buildPayments(),
+        payments: payment.payments(),
         discount: fromCents(discountCents),
         notes: notes.trim() || null,
       },
@@ -228,52 +199,7 @@ export function NewSalePage() {
             </div>
           </dl>
 
-          <div className="space-y-2">
-            <Label>Método de pago</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {payModes.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setPayMode(value)}
-                  aria-pressed={payMode === value}
-                  className={cn(
-                    'flex flex-col items-center gap-1 rounded-lg border p-2 text-xs font-medium transition',
-                    payMode === value ? 'border-primary bg-secondary text-primary' : 'hover:bg-muted',
-                  )}
-                >
-                  <Icon className="size-4" /> {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {payMode === 'cash' && (
-            <div className="space-y-1.5">
-              <Label htmlFor="cash-received">Efectivo recibido (opcional)</Label>
-              <Input id="cash-received" type="number" inputMode="decimal" min={0} step="0.01" value={cashReceivedText} onChange={(event) => setCashReceivedText(event.target.value)} placeholder={fromCents(totalCents).toFixed(2)} className="tabular-nums" />
-              {changeCents > 0 && (
-                <p className="rounded-lg bg-success/10 px-3 py-2 text-sm font-semibold text-success">Cambio: {formatBolivianos(fromCents(changeCents))}</p>
-              )}
-            </div>
-          )}
-
-          {payMode === 'mixed' && (
-            <div className="space-y-1.5">
-              <Label htmlFor="mixed-cash">Monto en efectivo</Label>
-              <Input id="mixed-cash" type="number" inputMode="decimal" min={0} step="0.01" value={mixedCashText} onChange={(event) => setMixedCashText(event.target.value)} className="tabular-nums" />
-              <p className="text-sm text-muted-foreground">
-                Por QR: <span className="font-semibold text-foreground tabular-nums">{formatBolivianos(fromCents(Math.max(mixedQrCents, 0)))}</span>
-              </p>
-            </div>
-          )}
-
-          {(payMode === 'qr' || payMode === 'mixed') && (
-            <div className="space-y-1.5">
-              <Label htmlFor="qr-reference">Referencia del QR (opcional)</Label>
-              <Input id="qr-reference" value={qrReference} maxLength={100} onChange={(event) => setQrReference(event.target.value)} placeholder="N.º de transacción" />
-            </div>
-          )}
+          <PaymentFields form={payment} idPrefix="sale" />
 
           <div className="space-y-1.5">
             <Label htmlFor="sale-notes">Observaciones (opcional)</Label>

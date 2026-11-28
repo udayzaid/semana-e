@@ -33,6 +33,45 @@ export async function signIn(email: string, password: string): Promise<void> {
   if (error) throw new Error(toAuthMessage(error))
 }
 
+export interface CustomerSignUpInput {
+  email: string
+  password: string
+  fullName: string
+  businessName: string | null
+  phone: string
+  customerType: 'retailer' | 'final_consumer'
+}
+
+/**
+ * Registro de clientes desde el portal. La base de datos crea su ficha de cliente
+ * (signup_source = portal) y siempre le asigna el rol "customer".
+ * Devuelve true si la sesión quedó iniciada, o false si Supabase pide confirmar el correo.
+ */
+export async function signUpCustomer(input: CustomerSignUpInput): Promise<{ signedIn: boolean }> {
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/login`,
+      data: {
+        signup_source: 'portal',
+        full_name: input.fullName,
+        business_name: input.businessName,
+        phone: input.phone,
+        customer_type: input.customerType,
+      },
+    },
+  })
+  if (error) {
+    if (error.code === 'user_already_exists' || /already registered/i.test(error.message)) throw new Error('Ya existe una cuenta con ese correo. Inicia sesión.')
+    if (error.code === 'weak_password') throw new Error('La contraseña es muy débil. Usa al menos 8 caracteres con letras y números.')
+    if (error.code === 'over_email_send_rate_limit' || error.status === 429) throw new Error('Se enviaron demasiados correos. Espera unos minutos e inténtalo de nuevo.')
+    if (error.code === 'signup_disabled') throw new Error('El registro de cuentas está desactivado por el momento.')
+    throw new Error('No se pudo crear la cuenta. Inténtalo de nuevo.')
+  }
+  return { signedIn: !!data.session }
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut()
   if (error) throw new Error('No se pudo cerrar la sesión. Inténtalo de nuevo.')

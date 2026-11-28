@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import '@/styles/admin.css'
+import { AiChatLauncher } from '@/features/ai-assistant/components/AiChatLauncher'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
@@ -14,6 +15,7 @@ export function AdminLayout() {
           <Outlet />
         </div>
       </main>
+      <AiChatLauncher />
     </div>
   )
 }

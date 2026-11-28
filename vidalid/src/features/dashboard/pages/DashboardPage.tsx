@@ -1,125 +1,356 @@
-import { ArrowDownRight, ArrowUpRight, ClipboardList, Package, ShoppingBag, Truck, Users, Wallet } from 'lucide-react'
+import { addDays, format, parseISO, startOfDay, startOfMonth, subDays, subMonths } from 'date-fns'
+import { es } from 'date-fns/locale'
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarClock,
+  ChevronRight,
+  PackageX,
+  Plus,
+  ShoppingBag,
+  TrendingUp,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { buttonVariants } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useBatches, useInventorySummary } from '@/features/inventory/hooks/useInventory'
+import { getExpiry } from '@/features/inventory/lib/expiry'
+import { useSales, useSalesSummary } from '@/features/sales/hooks/useSales'
+import { toUserMessage } from '@/lib/errors'
+import { cn, formatBolivianos } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
+import { PaymentSplit } from '../components/PaymentSplit'
+import { SalesTrendChart } from '../components/SalesTrendChart'
+import { TopProductsChart } from '../components/TopProductsChart'
+import { useActiveCustomerCount, useSalesByDay, useStockAlerts, useTopProducts } from '../hooks/useDashboard'
 
-// TODO(dashboard): reemplazar estos datos de demostración por consultas reales a Supabase.
-const stats = [
-  { label: 'Ventas del día', value: 'Bs 2.840', change: '+12,8%', up: true, icon: Wallet, tone: 'green' },
-  { label: 'Pedidos pendientes', value: '18', change: '6 por preparar', up: false, icon: ClipboardList, tone: 'amber' },
-  { label: 'Productos activos', value: '246', change: '12 categorías', up: true, icon: Package, tone: 'blue' },
-  { label: 'Clientes registrados', value: '184', change: '+8 este mes', up: true, icon: Users, tone: 'violet' },
-]
+/** Periodos calculados una sola vez (hora local). */
+function usePeriods() {
+  const [periods] = useState(() => {
+    const now = new Date()
+    const today = startOfDay(now)
+    const lastMonth = subMonths(now, 1)
+    return {
+      now,
+      dayFrom: today,
+      dayTo: addDays(today, 1),
+      monthFrom: startOfMonth(now),
+      monthTo: addDays(today, 1),
+      // Mismo tramo del mes anterior (del 1 al mismo día) para comparar en igualdad.
+      prevFrom: startOfMonth(lastMonth),
+      prevTo: addDays(startOfDay(lastMonth), 1),
+      trendFrom: subDays(today, 29),
+      trendTo: today,
+    }
+  })
+  return periods
+}
 
-const products = [
-  { name: 'Omega 3 Premium', sku: 'VID-001', category: 'Suplementos', stock: 42, status: 'Disponible', tone: 'ok', price: 'Bs 85,00' },
-  { name: 'Maca Andina', sku: 'VID-014', category: 'Extractos naturales', stock: 8, status: 'Stock bajo', tone: 'low', price: 'Bs 65,00' },
-  { name: 'Colágeno Hidrolizado', sku: 'VID-027', category: 'Suplementos', stock: 0, status: 'Agotado', tone: 'out', price: 'Bs 120,00' },
-  { name: 'Vitamina C 1000 mg', sku: 'VID-032', category: 'Vitaminas', stock: 31, status: 'Disponible', tone: 'ok', price: 'Bs 48,00' },
-]
-
-const orders = [
-  { id: '#PED-0248', customer: 'Distribuidora San Miguel', date: 'Hoy, 10:42', total: 'Bs 680,00', status: 'En preparación', tone: 'prep' },
-  { id: '#PED-0247', customer: 'María Fernanda Rojas', date: 'Hoy, 10:18', total: 'Bs 245,00', status: 'Pendiente', tone: 'pending' },
-  { id: '#PED-0246', customer: 'Tienda Natural Vida', date: 'Hoy, 09:56', total: 'Bs 1.120,00', status: 'Listo para entrega', tone: 'ready' },
-]
-
-function greeting(): string {
-  const hour = new Date().getHours()
+function greeting(hour: number): string {
   if (hour < 12) return 'Buenos días'
   if (hour < 19) return 'Buenas tardes'
   return 'Buenas noches'
 }
 
+/** RF-06 · Resumen general del negocio con datos reales. */
 export function DashboardPage() {
+  const p = usePeriods()
   const profile = useAuthStore((state) => state.profile)
   const firstName = profile?.fullName.split(' ')[0] || 'Administrador'
 
+  const today = useSalesSummary(p.dayFrom, p.dayTo)
+  const month = useSalesSummary(p.monthFrom, p.monthTo)
+  const previous = useSalesSummary(p.prevFrom, p.prevTo)
+  const inventory = useInventorySummary()
+  const customers = useActiveCustomerCount()
+  const trend = useSalesByDay(p.trendFrom, p.trendTo)
+  const top = useTopProducts(p.monthFrom, p.monthTo, 5)
+  const stockAlerts = useStockAlerts()
+  const expiring = useBatches({ filter: 'expiring', productId: null, page: 1, pageSize: 5 })
+  const recent = useSales({ search: '', customerId: null, status: 'all', from: null, to: null, page: 1, pageSize: 5 })
+
+  const change =
+    month.data && previous.data && previous.data.totalAmount > 0
+      ? Math.round(((month.data.totalAmount - previous.data.totalAmount) / previous.data.totalAmount) * 100)
+      : null
+
+  const trendTotal = trend.data?.reduce((sum, day) => sum + day.total, 0) ?? 0
+  const alertCount = (stockAlerts.data?.length ?? 0) + (expiring.data?.total ?? 0) + (inventory.data?.expiredBatches ?? 0)
+
   return (
-    <>
-      <section className="welcome-row">
+    <div className="space-y-6">
+      {/* Bienvenida */}
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="eyebrow">RESUMEN GENERAL</div>
-          <h1>{greeting()}, {firstName} <span>✦</span></h1>
-          <p>Esto es lo que está sucediendo hoy en VIDALID.</p>
+          <p className="text-[11px] font-bold tracking-[0.15em] text-brand">RESUMEN GENERAL</p>
+          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+            {greeting(p.now.getHours())}, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
+            {format(p.now, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })} · esto es lo que pasa hoy en Vidalid.
+          </p>
         </div>
-        <span className="rounded-md bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
-          Datos de demostración
-        </span>
+        <Link to="/admin/ventas/nueva" className={buttonVariants({ className: 'h-9' })}>
+          <Plus /> Nueva venta
+        </Link>
       </section>
 
-      <section className="stats-grid">
-        {stats.map((s) => {
-          const Icon = s.icon
-          return (
-            <article className="stat-card" key={s.label}>
-              <div className="stat-top"><span>{s.label}</span><div className={`stat-icon ${s.tone}`}><Icon size={19} /></div></div>
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-foot">{s.up ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}<strong>{s.change}</strong><span> vs. periodo anterior</span></div>
-            </article>
-          )
-        })}
+      {/* Indicadores */}
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <Kpi
+          icon={Wallet}
+          label="Ventas de hoy"
+          loading={today.isLoading}
+          value={today.data ? formatBolivianos(today.data.totalAmount) : '—'}
+          hint={today.data ? `${today.data.salesCount} venta${today.data.salesCount === 1 ? '' : 's'}` : undefined}
+        />
+        <Kpi
+          icon={TrendingUp}
+          label="Ventas del mes"
+          loading={month.isLoading}
+          value={month.data ? formatBolivianos(month.data.totalAmount) : '—'}
+          hint={
+            change === null ? (
+              month.data ? `${month.data.salesCount} ventas` : undefined
+            ) : (
+              <span className="inline-flex items-center gap-0.5">
+                {change >= 0 ? <ArrowUpRight className="size-3.5 text-success" /> : <ArrowDownRight className="size-3.5 text-destructive" />}
+                <span className="font-semibold text-foreground">{change > 0 ? '+' : ''}{change}%</span> vs. mes anterior
+              </span>
+            )
+          }
+        />
+        <Kpi
+          icon={ShoppingBag}
+          label="Valor del inventario"
+          loading={inventory.isLoading}
+          value={inventory.data ? formatBolivianos(inventory.data.inventoryValue) : '—'}
+          hint={inventory.data ? `${inventory.data.totalUnits.toLocaleString('es-BO')} unidades · ${inventory.data.activeProducts} productos` : undefined}
+          to="/admin/inventario"
+        />
+        <Kpi
+          icon={Users}
+          label="Clientes activos"
+          loading={customers.isLoading}
+          value={customers.data ? String(customers.data.total) : '—'}
+          hint={customers.data ? `${customers.data.retailers} comerciantes minoristas` : undefined}
+          to="/admin/clientes"
+        />
       </section>
 
-      <section className="content-grid">
-        <article className="panel sales-panel">
-          <div className="panel-heading"><div><h2>Resumen de ventas</h2><p>Comportamiento de tus ventas durante la semana</p></div></div>
-          <div className="chart-summary"><strong>Bs 18.450,00</strong><span className="positive"><ArrowUpRight size={15} /> 8,4%</span><small>Ingresos totales</small></div>
-          <div className="chart-placeholder">
-            <div className="chart-y-labels"><span>5k</span><span>4k</span><span>3k</span><span>2k</span><span>1k</span><span>0</span></div>
-            <div className="chart-area">
-              <div className="chart-gridlines"><i /><i /><i /><i /><i /><i /></div>
-              <svg viewBox="0 0 650 190" preserveAspectRatio="none" role="img" aria-label="Gráfico ilustrativo de ventas semanales">
-                <defs><linearGradient id="salesFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#2f946b" stopOpacity=".2" /><stop offset="100%" stopColor="#2f946b" stopOpacity="0" /></linearGradient></defs>
-                <path d="M0 145 C35 135 48 105 90 119 S145 145 185 105 S242 93 275 108 S330 65 365 84 S420 113 460 60 S525 72 555 42 S615 48 650 20 L650 190 L0 190Z" fill="url(#salesFill)" />
-                <path d="M0 145 C35 135 48 105 90 119 S145 145 185 105 S242 93 275 108 S330 65 365 84 S420 113 460 60 S525 72 555 42 S615 48 650 20" fill="none" stroke="#27865f" strokeWidth="3" strokeLinecap="round" />
-              </svg>
-              <div className="chart-x-labels"><span>Vie</span><span>Sáb</span><span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span></div>
-            </div>
-          </div>
-          <div className="chart-note"><span className="legend-dot" /> Ventas registradas <span className="demo-note">Datos de demostración</span></div>
-        </article>
+      {/* Tendencia + atención */}
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title="Ventas de los últimos 30 días"
+          subtitle={trend.data ? `Total del periodo: ${formatBolivianos(trendTotal)}` : undefined}
+        >
+          <QueryState query={trend} skeleton="h-64" empty={trendTotal === 0} emptyText="Aún no hay ventas en los últimos 30 días. Registra una venta para ver la tendencia.">
+            {trend.data && <SalesTrendChart data={trend.data} />}
+          </QueryState>
+        </Panel>
 
-        <article className="panel alerts-panel">
-          <div className="panel-heading"><div><h2>Atención necesaria</h2><p>Requieren seguimiento</p></div><span className="alert-counter">3</span></div>
-          <div className="alert-item"><div className="alert-symbol amber"><Package size={17} /></div><div><strong>Stock bajo</strong><span>Maca Andina · 8 unidades</span></div><span className="alert-arrow">›</span></div>
-          <div className="alert-item"><div className="alert-symbol red"><Package size={17} /></div><div><strong>Producto agotado</strong><span>Colágeno Hidrolizado</span></div><span className="alert-arrow">›</span></div>
-          <div className="alert-item"><div className="alert-symbol blue"><Truck size={17} /></div><div><strong>Pedidos pendientes</strong><span>6 pedidos por preparar</span></div><span className="alert-arrow">›</span></div>
-        </article>
+        <Panel
+          title="Atención necesaria"
+          subtitle="Requieren seguimiento"
+          badge={alertCount > 0 ? String(alertCount) : undefined}
+        >
+          {stockAlerts.isLoading || expiring.isLoading ? (
+            <Skeleton className="h-48 w-full" />
+          ) : alertCount === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Todo en orden: sin productos agotados, con stock bajo ni lotes por vencer.</p>
+          ) : (
+            <ul className="divide-y">
+              {stockAlerts.data?.map((product) => (
+                <AlertRow
+                  key={product.id}
+                  to="/admin/inventario"
+                  icon={product.stockStatus === 'out' ? PackageX : AlertTriangle}
+                  tone={product.stockStatus === 'out' ? 'danger' : 'warning'}
+                  title={product.stockStatus === 'out' ? 'Agotado' : 'Stock bajo'}
+                  detail={`${product.name} · ${product.availableStock} / mín. ${product.minStock} ${product.unit}`}
+                />
+              ))}
+              {(inventory.data?.expiredBatches ?? 0) > 0 && (
+                <AlertRow to="/admin/inventario" icon={CalendarClock} tone="danger" title="Lotes vencidos" detail={`${inventory.data!.expiredBatches} lote(s) con stock vencido`} />
+              )}
+              {expiring.data?.rows.map((batch) => (
+                <AlertRow
+                  key={batch.id}
+                  to="/admin/inventario"
+                  icon={CalendarClock}
+                  tone="warning"
+                  title="Próximo a vencer"
+                  detail={`${batch.productName} · ${batch.quantity} ${batch.unit} · ${getExpiry(batch.expiresAt).label}`}
+                />
+              ))}
+            </ul>
+          )}
+        </Panel>
       </section>
 
-      <section className="bottom-grid">
-        <article className="panel table-panel">
-          <div className="panel-heading"><div><h2>Productos con bajo stock</h2><p>Supervisa las existencias de tu almacén</p></div><Link to="/admin/inventario" className="text-link">Ver inventario →</Link></div>
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>PRODUCTO</th><th>CATEGORÍA</th><th>STOCK</th><th>PRECIO</th><th>ESTADO</th></tr></thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.sku}>
-                    <td><div className="product-cell"><div className="product-thumb"><Package size={17} /></div><div><strong>{p.name}</strong><span>{p.sku}</span></div></div></td>
-                    <td>{p.category}</td><td><strong>{p.stock}</strong></td><td>{p.price}</td><td><span className={`status ${p.tone}`}>{p.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
+      {/* Más vendidos + pagos */}
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Panel className="lg:col-span-2" title="Productos más vendidos" subtitle="Este mes, por unidades vendidas">
+          <QueryState query={top} skeleton="h-52" empty={top.data?.length === 0} emptyText="Todavía no hay productos vendidos este mes.">
+            {top.data && <TopProductsChart data={top.data} />}
+          </QueryState>
+        </Panel>
 
-        <article className="panel orders-panel">
-          <div className="panel-heading"><div><h2>Pedidos recientes</h2><p>Últimos movimientos comerciales</p></div><Link to="/admin/pedidos" className="text-link">Ver todos →</Link></div>
-          <div className="orders-list">
-            {orders.map((o) => (
-              <div className="order-row" key={o.id}>
-                <div className="order-icon"><ShoppingBag size={17} /></div>
-                <div className="order-info"><strong>{o.id}</strong><span>{o.customer}</span><small>{o.date}</small></div>
-                <div className="order-meta"><strong>{o.total}</strong><span className={`status ${o.tone}`}>{o.status}</span></div>
+        <Panel title="Cobros del mes" subtitle="Efectivo y QR">
+          {month.isLoading ? <Skeleton className="h-32 w-full" /> : month.data && <PaymentSplit cash={month.data.cashTotal} qr={month.data.qrTotal} />}
+          {month.data && month.data.salesCount > 0 && (
+            <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-4 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">Ticket promedio</dt>
+                <dd className="font-semibold tabular-nums">{formatBolivianos(month.data.averageTicket)}</dd>
               </div>
-            ))}
-          </div>
-        </article>
+              <div>
+                <dt className="text-xs text-muted-foreground">Unidades vendidas</dt>
+                <dd className="font-semibold tabular-nums">{month.data.unitsSold.toLocaleString('es-BO')}</dd>
+              </div>
+            </dl>
+          )}
+        </Panel>
       </section>
 
-      <footer className="footer-note">VIDALID · Sistema de gestión <span>Versión MVP 0.1.0</span></footer>
+      {/* Ventas recientes */}
+      <Panel
+        title="Ventas recientes"
+        subtitle="Últimos movimientos comerciales"
+        action={
+          <Link to="/admin/ventas" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+            Ver todas <ChevronRight className="size-3.5" />
+          </Link>
+        }
+      >
+        <QueryState query={recent} skeleton="h-40" empty={recent.data?.rows.length === 0} emptyText="Todavía no hay ventas registradas.">
+          <ul className="divide-y">
+            {recent.data?.rows.map((sale) => (
+              <li key={sale.id} className={cn('flex items-center gap-3 py-2.5', sale.status === 'voided' && 'opacity-60')}>
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-primary">
+                  <ShoppingBag className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {sale.code} · {sale.customerName ?? 'Cliente ocasional'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{format(parseISO(sale.createdAt), "d MMM, HH:mm", { locale: es })}</p>
+                </div>
+                <div className="text-right">
+                  <p className={cn('text-sm font-semibold tabular-nums', sale.status === 'voided' && 'line-through')}>{formatBolivianos(sale.total)}</p>
+                  <p className={cn('text-xs font-semibold', sale.status === 'completed' ? 'text-success' : 'text-destructive')}>
+                    {sale.status === 'completed' ? 'Completada' : 'Anulada'}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </QueryState>
+      </Panel>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------
+// Piezas del dashboard
+// ---------------------------------------------------------------------
+
+interface KpiProps {
+  icon: LucideIcon
+  label: string
+  value: string
+  hint?: ReactNode
+  loading?: boolean
+  to?: string
+}
+
+function Kpi({ icon: Icon, label, value, hint, loading, to }: KpiProps) {
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-brand">
+          <Icon className="size-4" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-2 h-7 w-24" />
+      ) : (
+        <p className="mt-1 font-heading text-lg font-bold break-words tabular-nums sm:text-2xl">{value}</p>
+      )}
+      {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
     </>
+  )
+  const className = 'block rounded-xl border bg-card p-4 shadow-xs'
+  return to ? (
+    <Link to={to} className={cn(className, 'transition hover:border-primary/40')}>
+      {body}
+    </Link>
+  ) : (
+    <div className={className}>{body}</div>
+  )
+}
+
+interface PanelProps {
+  title: string
+  subtitle?: string
+  badge?: string
+  action?: ReactNode
+  className?: string
+  children: ReactNode
+}
+
+function Panel({ title, subtitle, badge, action, className, children }: PanelProps) {
+  return (
+    <article className={cn('min-w-0 rounded-xl border bg-card p-4 shadow-xs sm:p-5', className)}>
+      <header className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-sm font-bold">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        {badge && <span className="rounded-md bg-warning/12 px-2 py-0.5 text-xs font-semibold text-warning">{badge}</span>}
+        {action}
+      </header>
+      {children}
+    </article>
+  )
+}
+
+interface QueryStateProps {
+  query: { isLoading: boolean; isError: boolean; error: unknown }
+  skeleton: string
+  empty: boolean | undefined
+  emptyText: string
+  children: ReactNode
+}
+
+/** Estados de carga, error y vacío comunes a los paneles. */
+function QueryState({ query, skeleton, empty, emptyText, children }: QueryStateProps) {
+  if (query.isLoading) return <Skeleton className={cn('w-full', skeleton)} />
+  if (query.isError) return <p className="py-8 text-center text-sm text-destructive">{toUserMessage(query.error, 'No se pudieron cargar los datos.')}</p>
+  if (empty) return <p className="py-10 text-center text-sm text-muted-foreground">{emptyText}</p>
+  return <>{children}</>
+}
+
+function AlertRow({ to, icon: Icon, tone, title, detail }: { to: string; icon: LucideIcon; tone: 'warning' | 'danger'; title: string; detail: string }) {
+  return (
+    <li>
+      <Link to={to} className="flex items-center gap-3 py-2.5 hover:bg-muted/40">
+        <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg', tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-warning/12 text-warning')}>
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{title}</p>
+          <p className="truncate text-xs text-muted-foreground">{detail}</p>
+        </div>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </Link>
+    </li>
   )
 }

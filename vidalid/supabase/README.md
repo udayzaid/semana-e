@@ -9,6 +9,13 @@ Las migraciones están en `migrations/` y se aplican **en orden** (por la fecha 
 | `20261126130200_inventory_functions.sql` | Entradas, salidas y ajustes de stock con lotes (FEFO) |
 | `20261126130300_sales_functions.sql` | `register_sale` y `void_sale` |
 | `20261126130400_security_rls.sql` | Privilegios, políticas RLS, vista `catalog_products` y bucket de imágenes |
+| `20261127090000_product_stock_status.sql` | Columnas calculadas `available_stock` y `stock_status` |
+| `20261127100000_product_delete.sql` | Eliminar productos sin historial |
+| `20261127110000_inventory_summary.sql` | Resumen de inventario |
+| `20261127120000_crm.sql` | Seguimientos de clientes y vista `customer_summaries` |
+| `20261127130000_sales_summary.sql` | Resumen de ventas por periodo |
+| `20261127140000_dashboard.sql` | Ventas por día y productos más vendidos |
+| `20261127150000_ai_analytics.sql` | Baja rotación, clientes frecuentes y sugerencias de reposición |
 
 ## Reglas de negocio
 
@@ -57,6 +64,48 @@ update public.profiles
 set role = 'admin', full_name = 'Administrador VIDALID'
 where email = 'tu-correo@ejemplo.com';
 ```
+
+## VIDALID AI (Edge Function `vidalid-ai`)
+
+Arquitectura: **React → Edge Function → proveedor de IA (Gemini gratis) → funciones SQL autorizadas → respuesta**.
+
+- La clave del proveedor de IA vive **solo** en los secretos de Supabase. Nunca va en `.env` ni en el frontend.
+- La función consulta la base de datos con el token del usuario (aplican RLS y el rol admin).
+- La IA solo puede usar herramientas de **lectura** (ventas, productos, clientes, inventario,
+  reposición). No ejecuta SQL libre ni modifica datos.
+- La "Consulta rápida" de productos busca directo en PostgreSQL, sin IA (costo cero).
+
+### Desplegar desde el panel de Supabase (sin instalar nada)
+
+1. Crea una clave **gratuita** de Google Gemini en <https://aistudio.google.com/apikey>
+   (solo necesitas una cuenta de Google; no pide tarjeta).
+2. Supabase → **Edge Functions → Secrets** → agrega `AI_API_KEY` con esa clave.
+   Con Gemini no hace falta nada más (`AI_BASE_URL` y `AI_MODEL` tienen valores por defecto).
+
+   | Proveedor | Costo | `AI_BASE_URL` | `AI_MODEL` |
+   |---|---|---|---|
+   | Google Gemini (por defecto) | Nivel gratuito | *(no hace falta)* | `gemini-flash-latest` |
+   | Groq | Nivel gratuito | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+   | OpenAI | De pago | `https://api.openai.com/v1` | `gpt-4o-mini` |
+
+   Los niveles gratuitos tienen límites de solicitudes por minuto y por día: si se
+   superan, el asistente avisa y basta con esperar. Si un modelo deja de existir,
+   cambia `AI_MODEL` por el que indique el proveedor.
+3. Supabase → **Edge Functions → Deploy a new function → Via Editor**.
+   Nombre: `vidalid-ai`. Pega el contenido de `functions/vidalid-ai/index.ts` y pulsa **Deploy**.
+   Deja activado **Verify JWT** (solo usuarios con sesión pueden llamarla).
+4. Aplica la migración `20261127150000_ai_analytics.sql` en el SQL Editor.
+
+### Desplegar con la CLI (alternativa)
+
+```powershell
+npx supabase login
+npx supabase link --project-ref yswsfnvvbwvymcgpiydv
+npx supabase secrets set AI_API_KEY=tu-clave-de-gemini
+npx supabase functions deploy vidalid-ai
+```
+
+Para cambiar algo de la IA, edita `functions/vidalid-ai/index.ts` y vuelve a desplegar.
 
 ## Llamar a las funciones desde el frontend
 

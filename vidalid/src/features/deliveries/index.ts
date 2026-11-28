@@ -1,1 +1,2 @@
-// Módulo distribución: preparación, despacho y entregas.
+// Módulo deliveries: preparación, despacho y entrega de pedidos.
+export { DeliveriesPage } from './pages/DeliveriesPage'

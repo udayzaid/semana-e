@@ -10,6 +10,8 @@ export type PaymentMethod = 'cash' | 'qr'
 
 export type SaleStatus = 'completed' | 'voided'
 
+export type StockStatus = 'ok' | 'low' | 'out'
+
 export type MovementType = 'entry' | 'exit' | 'adjustment' | 'sale' | 'sale_void'
 
 /** Estados de pedido (Prioridad 2, aún sin tabla en la base de datos). */

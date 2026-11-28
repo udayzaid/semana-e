@@ -2,14 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2, LockKeyhole, Mail, PackageCheck, ShieldCheck, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { BrandLogo } from '@/components/shared/BrandLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/stores/auth.store'
-import { LeafBackground } from '../components/LeafBackground'
-import { NatureBackground } from '../components/NatureBackground'
+import { LeafBackground } from '@/components/shared/LeafBackground'
+import { NatureBackground } from '@/components/shared/NatureBackground'
 import { loginSchema, type LoginFormValues } from '../schemas/login.schema'
 import { signIn } from '../services/auth.service'
 
@@ -24,6 +24,7 @@ const highlights = [
 export function LoginPage() {
   const location = useLocation()
   const status = useAuthStore((state) => state.status)
+  const role = useAuthStore((state) => state.profile?.role)
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -36,10 +37,15 @@ export function LoginPage() {
     defaultValues: { email: '', password: '' },
   })
 
-  // Con sesión iniciada, volver a la página que se pidió (o al panel).
+  // Con sesión iniciada: el administrador va al panel y el cliente a su cuenta
+  // (o a la página que pidió, si le corresponde).
   if (status === 'authenticated') {
-    const from = (location.state as { from?: string } | null)?.from ?? '/admin'
-    return <Navigate to={from} replace />
+    const from = (location.state as { from?: string } | null)?.from
+    if (role === 'customer') {
+      const allowed = from && !from.startsWith('/admin') ? from : '/mi-cuenta'
+      return <Navigate to={allowed} replace />
+    }
+    return <Navigate to={from ?? '/admin'} replace />
   }
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -96,7 +102,7 @@ export function LoginPage() {
         <div className="w-full max-w-sm">
 
           <h2 className="font-heading text-2xl font-bold tracking-tight">Iniciar sesión</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">Ingresa con tu cuenta para acceder al panel.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">Ingresa con tu correo y contraseña.</p>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
             {formError && (
@@ -159,9 +165,17 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            ¿No tienes cuenta? Solicítala al administrador de VIDALID.
-          </p>
+          <div className="mt-8 space-y-3 text-center text-sm">
+            <p className="text-muted-foreground">
+              ¿Eres cliente y no tienes cuenta?{' '}
+              <Link to="/registro" className="font-semibold text-primary hover:underline">
+                Crear cuenta
+              </Link>
+            </p>
+            <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              ← Volver a la tienda
+            </Link>
+          </div>
         </div>
       </main>
     </div>

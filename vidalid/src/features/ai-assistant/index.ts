@@ -1,2 +1,3 @@
-// Asistente IA: consultas autorizadas y resúmenes para administración.
-// La integración se implementará en funciones de servidor; nunca exponer API keys en Vite.
+// Módulo ai-assistant: VIDALID AI (asistente administrativo y de productos).
+export { AssistantPage } from './pages/AssistantPage'
+export { useChatStore } from './store/chat.store'
